@@ -70,6 +70,8 @@ public final class FastCosineSimilarityPlugin extends Plugin implements ScriptPl
                 final String field;
                 //Whether this search should be cosine or dot product
                 final Boolean cosine;
+                //Whether this search should be l2norm
+                final Boolean l2norm;
                 //The query embedded vector
                 final Object vector;
                 Boolean exclude;
@@ -82,7 +84,11 @@ public final class FastCosineSimilarityPlugin extends Plugin implements ScriptPl
 
                     //Determine if cosine
                     final Object cosineBool = p.get("cosine");
-                    cosine = cosineBool != null ? (boolean)cosineBool : true;
+                    cosine = cosineBool != null ? (boolean)cosineBool : false;
+
+                    // Determine if l2norm
+                    final Object l2normBool = p.get("l2norm");
+                    l2norm = l2normBool != null ? (boolean)l2normBool : true;
 
                     //Get the field value from the query
                     field = p.get("field").toString();
@@ -174,23 +180,31 @@ public final class FastCosineSimilarityPlugin extends Plugin implements ScriptPl
                             double docVectorNorm = 0d;
                             double score = 0d;
 
-                            //calculate dot product of document vector and query vector
-                            for (int i = 0; i < inputVectorSize; i++) {
-          
-                                score += docVector[i] * inputVector[i];
+                            if(cosine) {
+                                //calculate dot product of document vector and query vector
+                                for (int i = 0; i < inputVectorSize; i++) {
 
-                                if(cosine)
-                                {
-                                  docVectorNorm += Math.pow(docVector[i], 2.0);
+                                    score += docVector[i] * inputVector[i];
+
+                                    if (cosine) {
+                                        docVectorNorm += Math.pow(docVector[i], 2.0);
+                                    }
+                                }
+
+                                //If cosine, calcluate cosine score
+                                if (cosine) {
+
+                                    if (docVectorNorm == 0 || queryVectorNorm == 0) return 0d;
+
+                                    score = score / (Math.sqrt(docVectorNorm) * Math.sqrt(queryVectorNorm));
                                 }
                             }
 
-                            //If cosine, calcluate cosine score
-                            if(cosine) {
-
-                                if (docVectorNorm == 0 || queryVectorNorm == 0) return 0d;
-
-                                score =  score / (Math.sqrt(docVectorNorm) * Math.sqrt(queryVectorNorm));
+                            if(l2norm) {
+                                for (int i = 0; i < inputVectorSize; i++) {
+                                    score += Math.pow((docVector[i] - inputVector[i]), 2.0);
+                                }
+                                score = Math.sqrt(score);
                             }
 
                             return score;
