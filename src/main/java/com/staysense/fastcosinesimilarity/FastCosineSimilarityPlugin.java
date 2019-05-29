@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
 
-import com.elasticsearch.staysense.fastcosinesimilarity.Util;
+import com.staysense.fastcosinesimilarity.Util;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.store.ByteArrayDataInput;
