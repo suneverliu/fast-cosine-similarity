@@ -72,6 +72,8 @@ public final class FastCosineSimilarityPlugin extends Plugin implements ScriptPl
                 final Boolean cosine;
                 //Whether this search should be l2norm
                 final Boolean l2norm;
+                //Whether this search should be l1norm
+                final Boolean l1norm;
                 //The query embedded vector
                 final Object vector;
                 Boolean exclude;
@@ -88,7 +90,11 @@ public final class FastCosineSimilarityPlugin extends Plugin implements ScriptPl
 
                     // Determine if l2norm
                     final Object l2normBool = p.get("l2norm");
-                    l2norm = l2normBool != null ? (boolean)l2normBool : true;
+                    l2norm = l2normBool != null ? (boolean)l2normBool : false;
+
+                    // Determine if l1norm
+                    final Object l1normBool = p.get("l1norm");
+                    l1norm = l1normBool != null ? (boolean)l1normBool : true;
 
                     //Get the field value from the query
                     field = p.get("field").toString();
@@ -128,24 +134,24 @@ public final class FastCosineSimilarityPlugin extends Plugin implements ScriptPl
                 public ScoreScript newInstance(LeafReaderContext context) throws IOException {
 
                     return new ScoreScript(p, lookup, context) {
-                          Boolean is_value = false;
+                        Boolean is_value = false;
 
-                          // Use Lucene LeafReadContext to access binary values directly.
-                          BinaryDocValues accessor = context.reader().getBinaryDocValues(field);
+                        // Use Lucene LeafReadContext to access binary values directly.
+                        BinaryDocValues accessor = context.reader().getBinaryDocValues(field);
 
-                          @Override
-                          public void setDocument(int docId) {
-                              // advance has undefined behavior calling with a docid <= its current docid
-                              try {
-                                  accessor.advanceExact(docId);
-                                  is_value = true;
-                              } catch (IOException e) {
-                                  is_value = false;
-                              }
-                          }
+                        @Override
+                        public void setDocument(int docId) {
+                            // advance has undefined behavior calling with a docid <= its current docid
+                            try {
+                                accessor.advanceExact(docId);
+                                is_value = true;
+                            } catch (IOException e) {
+                                is_value = false;
+                            }
+                        }
 
-                          @Override
-                          public double execute() {
+                        @Override
+                        public double execute() {
 
                             //If there is no field value return 0 rather than fail.
                             if (!is_value) return 0.0d;
@@ -154,9 +160,9 @@ public final class FastCosineSimilarityPlugin extends Plugin implements ScriptPl
                             final byte[] bytes;
 
                             try {
-                                 bytes = accessor.binaryValue().bytes;
+                                bytes = accessor.binaryValue().bytes;
                             } catch (IOException e) {
-                                 return 0d;
+                                return 0d;
                             }
 
 
@@ -166,7 +172,7 @@ public final class FastCosineSimilarityPlugin extends Plugin implements ScriptPl
 
                             final int docVectorLength = docVector.readVInt(); // returns the number of bytes to read
 
-                            if(docVectorLength != inputVectorSize * 8) {
+                            if (docVectorLength != inputVectorSize * 8) {
                                 return 0d;
                             }
 
@@ -180,7 +186,7 @@ public final class FastCosineSimilarityPlugin extends Plugin implements ScriptPl
                             double docVectorNorm = 0d;
                             double score = 0d;
 
-                            if(cosine & !l2norm) {
+                            if (cosine) {
                                 //calculate dot product of document vector and query vector
                                 for (int i = 0; i < inputVectorSize; i++) {
 
@@ -198,18 +204,22 @@ public final class FastCosineSimilarityPlugin extends Plugin implements ScriptPl
 
                                     score = score / (Math.sqrt(docVectorNorm) * Math.sqrt(queryVectorNorm));
                                 }
-                            }
 
-                            if(l2norm) {
+                            } else if (l2norm) {
                                 for (int i = 0; i < inputVectorSize; i++) {
                                     double dis = Math.abs(targetVector[i] - inputVector[i]);
                                     score += Math.pow(dis, 2.0);
                                 }
                                 score = Math.sqrt(score);
+
+                            } else if (l1norm) {
+                                for (int i = 0; i < inputVectorSize; i++) {
+                                    score += Math.abs(targetVector[i] - inputVector[i]);
+                                }
                             }
 
                             return score;
-                          }
+                        }
                     };
                 }
 
