@@ -180,7 +180,7 @@ public final class FastCosineSimilarityPlugin extends Plugin implements ScriptPl
                             double docVectorNorm = 0d;
                             double score = 0d;
 
-                            if(cosine) {
+                            if(cosine & !l2norm) {
                                 //calculate dot product of document vector and query vector
                                 for (int i = 0; i < inputVectorSize; i++) {
 
