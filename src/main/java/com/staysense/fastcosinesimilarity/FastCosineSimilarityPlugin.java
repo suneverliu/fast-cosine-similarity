@@ -174,8 +174,8 @@ public final class FastCosineSimilarityPlugin extends Plugin implements ScriptPl
 
                             final DoubleBuffer doubleBuffer = ByteBuffer.wrap(bytes, position, docVectorLength).asDoubleBuffer();
 
-                            final double[] docVector = new double[inputVectorSize];
-                            doubleBuffer.get(docVector);
+                            final double[] targetVector = new double[inputVectorSize];
+                            doubleBuffer.get(targetVector);
 
                             double docVectorNorm = 0d;
                             double score = 0d;
@@ -184,10 +184,10 @@ public final class FastCosineSimilarityPlugin extends Plugin implements ScriptPl
                                 //calculate dot product of document vector and query vector
                                 for (int i = 0; i < inputVectorSize; i++) {
 
-                                    score += docVector[i] * inputVector[i];
+                                    score += targetVector[i] * inputVector[i];
 
                                     if (cosine) {
-                                        docVectorNorm += Math.pow(docVector[i], 2.0);
+                                        docVectorNorm += Math.pow(targetVector[i], 2.0);
                                     }
                                 }
 
@@ -202,7 +202,7 @@ public final class FastCosineSimilarityPlugin extends Plugin implements ScriptPl
 
                             if(l2norm) {
                                 for (int i = 0; i < inputVectorSize; i++) {
-                                    double dis = Math.abs(docVector[i] - inputVector[i]);
+                                    double dis = Math.abs(targetVector[i] - inputVector[i]);
                                     score += Math.pow(dis, 2.0);
                                 }
                                 score = Math.sqrt(score);
