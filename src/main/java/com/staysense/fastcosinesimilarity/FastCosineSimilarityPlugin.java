@@ -202,7 +202,7 @@ public final class FastCosineSimilarityPlugin extends Plugin implements ScriptPl
 
                             if(l2norm) {
                                 for (int i = 0; i < inputVectorSize; i++) {
-                                    score += Math.pow((docVector[i] - inputVector[i]), 2.0);
+                                    score += Math.pow(Math.abs(docVector[i] - inputVector[i]), 2.0);
                                 }
                                 score = Math.sqrt(score);
                             }
